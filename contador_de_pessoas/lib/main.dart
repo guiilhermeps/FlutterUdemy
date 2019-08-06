@@ -5,6 +5,11 @@ void main() {
       title: "Contador de Pessoas",
       home: Stack(
         children: <Widget>[
+          Image.asset(
+            "images/restaurant.jpg",
+            fit: BoxFit.cover,
+            height: 1000.0,
+          ),
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
