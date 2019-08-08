@@ -16,7 +16,32 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  List _toDoList = ["Guilherme", "Pedro"];
+  final _taskTitle = TextEditingController();
+  List _toDoList = [];
+  Map<String, dynamic> _lastRemoved = Map();
+  int _lastRemovedPos;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _readData().then((data) {
+      setState(() {
+        _toDoList = json.decode(data);
+      });
+    });
+  }
+
+  void addTask() {
+    setState(() {
+      Map<String, dynamic> newTask = Map();
+      newTask["title"] = _taskTitle.text;
+      _taskTitle.text = "";
+      newTask["ok"] = false;
+      _toDoList.add(newTask);
+      _saveData();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,40 +61,98 @@ class _HomeState extends State<Home> {
                     decoration: InputDecoration(
                         labelText: "Nova Tarefa",
                         labelStyle: TextStyle(color: Colors.blueAccent)),
+                    controller: _taskTitle,
                   ),
                 ),
                 RaisedButton(
                   color: Colors.blueAccent,
                   child: Text("ADD"),
                   textColor: Colors.white,
-                  onPressed: () {},
+                  onPressed: addTask,
                 )
               ],
             ),
           ),
           Expanded(
-            child: ListView.builder(
-                padding: EdgeInsets.only(top: 10.0),
-                itemCount: _toDoList.length,
-                itemBuilder: (context, index) {
-                  return CheckboxListTile(
-                    title: Text(_toDoList[index]["title"]),
-                    value: _toDoList[index]["ok"],
-                    secondary: CircleAvatar(
-                      child: Icon(
-                          _toDoList[index]["ok"] ? Icons.check : Icons.error),
-                    ),
-                  );
-                }),
+            child: RefreshIndicator(
+              onRefresh: _refresh,
+              child: ListView.builder(
+                  padding: EdgeInsets.only(top: 10.0),
+                  itemCount: _toDoList.length,
+                  itemBuilder: buildItem),
+            ),
           )
         ],
       ),
     );
   }
 
+  Future<Null> _refresh() async{
+    await Future.delayed(Duration(seconds: 2));
+
+    setState(() {
+      _toDoList.sort((checked, notChecked){
+        if(checked["ok"] && !notChecked["ok"])return 1;
+        else if (!checked["ok"] && notChecked["ok"]) return -1;
+        else return 0;
+      });
+      _saveData();
+    });
+
+    return null;
+  }
+
+  Widget buildItem(BuildContext context, int index) {
+    return Dismissible(
+        key: Key(DateTime.now().millisecondsSinceEpoch.toString()),
+        background: Container(
+          color: Colors.red,
+          child: Align(
+            alignment: Alignment(-0.9, 0.0),
+            child: Icon(Icons.delete, color: Colors.white),
+          ),
+        ),
+        direction: DismissDirection.startToEnd,
+        child: CheckboxListTile(
+            title: Text(_toDoList[index]["title"]),
+            value: _toDoList[index]["ok"],
+            secondary: CircleAvatar(
+              child: Icon(_toDoList[index]["ok"] ? Icons.check : Icons.error),
+            ),
+            onChanged: (checked) {
+              setState(() {
+                _toDoList[index]["ok"] = checked;
+                _saveData();
+              });
+            }),
+        onDismissed: (direction) {
+          setState(() {
+            _lastRemoved = Map.from(_toDoList[index]);
+            _lastRemovedPos = index;
+            _toDoList.removeAt(index);
+
+            _saveData();
+
+            final snack = SnackBar(
+              content: Text("Tarefa \'${_lastRemoved["title"]}\' Removida!"),
+              action: SnackBarAction(
+                  label: "Desfazer",
+                  onPressed: () {
+                    setState(() {
+                      _toDoList.insert(_lastRemovedPos, _lastRemoved);
+                    });
+                  }),
+              duration: Duration(seconds: 5),
+            );
+            Scaffold.of(context).removeCurrentSnackBar();
+            Scaffold.of(context).showSnackBar(snack);
+          });
+        });
+  }
+
   Future<File> _getFile() async {
     final directory = await getApplicationDocumentsDirectory();
-    return File("{$directory.path}/data.json");
+    return File("${directory.path}/data.json");
   }
 
   Future<File> _saveData() async {
