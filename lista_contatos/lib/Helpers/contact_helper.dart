@@ -25,13 +25,12 @@ class ContactHelper {
 
     return await openDatabase(path, version: 1,
         onCreate: (Database db, int newerVersion) async {
-      await db.execute("CREATE DATABASE ContactTable (\" "
+      await db.execute("CREATE TABLE ContactTable ("
           "idColumn INTEGER PRIMARY KEY,"
           "nameColumn TEXT,"
           "emailColumn TEXT,"
           "telefoneColumn TEXT,"
-          "imgColumn TEXT"
-          " \") ");
+          "imgColumn TEXT)");
     });
   }
 
@@ -74,7 +73,7 @@ class ContactHelper {
 
   Future<List> getAllContacts() async {
     Database dbContact = await db;
-    List listMap = await dbContact.rawQuery("SELECT * FROM ContacTable");
+    List listMap = await dbContact.rawQuery("SELECT * FROM ContactTable");
     List<Contact> listContact = List();
     for (Map contacMap in listMap) {
       listContact.add(Contact.fromMap(contacMap));
@@ -115,5 +114,6 @@ class Contact {
     if (id != null) {
       map["idColumn"] = id;
     }
+    return map;
   }
 }

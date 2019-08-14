@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:lista_contatos/Helpers/contact_helper.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 import 'contact_page.dart';
+
+enum OrderOptions { orderaz, orderza }
 
 class HomePage extends StatefulWidget {
   @override
@@ -17,11 +19,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    helper.getAllContacts().then((list) {
-      setState(() {
-        contacts = list;
-      });
-    });
+    _getAllContacts();
   }
 
   @override
@@ -30,6 +28,19 @@ class _HomePageState extends State<HomePage> {
         appBar: AppBar(
             title: Text("Agenda"),
             centerTitle: true,
+            actions: <Widget>[
+              PopupMenuButton<OrderOptions>(
+                itemBuilder: (Context) => <PopupMenuEntry<OrderOptions>>[
+                  const PopupMenuItem<OrderOptions>(
+                      child: Text("Ordenar de A-Z"),
+                      value: OrderOptions.orderaz),
+                  const PopupMenuItem<OrderOptions>(
+                      child: Text("Ordenar de Z-A"),
+                      value: OrderOptions.orderza)
+                ],
+                onSelected: _orderList,
+              )
+            ],
             backgroundColor: Colors.red),
         backgroundColor: Colors.white,
         floatingActionButton: FloatingActionButton(
@@ -62,7 +73,7 @@ class _HomePageState extends State<HomePage> {
                     image: DecorationImage(
                         image: contacts[index].img != null
                             ? FileImage(File(contacts[index].img))
-                            : AssetImage("images/person.png"))),
+                            : AssetImage("images/person_icon.png"))),
               ),
               Padding(
                 padding: EdgeInsets.only(left: 10.0),
@@ -73,11 +84,9 @@ class _HomePageState extends State<HomePage> {
                         style: TextStyle(
                             fontSize: 22.0, fontWeight: FontWeight.bold)),
                     Text(contacts[index].email ?? "",
-                        style: TextStyle(
-                            fontSize: 22.0)),
+                        style: TextStyle(fontSize: 22.0)),
                     Text(contacts[index].telefone ?? "",
-                        style: TextStyle(
-                            fontSize: 22.0)),
+                        style: TextStyle(fontSize: 22.0)),
                   ],
                 ),
               )
@@ -85,15 +94,105 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      onTap: (){
-        _showContactPage();
+      onTap: () {
+        _showOptions(context, index);
       },
     );
   }
 
-  void _showContactPage({Contact contact}){
-    Navigator.push(context,
-    MaterialPageRoute(builder: (context) => ContactPage(contact: contact))
-    );
+  void _orderList(OrderOptions result) {
+    switch (result) {
+      case OrderOptions.orderaz:
+        contacts.sort((a, b) {
+          return a.nome.toLowerCase().compareTo(b.nome.toLowerCase());
+        });
+        break;
+      case OrderOptions.orderza:
+        contacts.sort((a, b) {
+          return b.nome.toLowerCase().compareTo(a.nome.toLowerCase());
+        });
+        break;
+    }
+    setState(() {});
+  }
+
+  void _showOptions(BuildContext context, int index) {
+    showModalBottomSheet(
+        context: context,
+        builder: (context) {
+          return BottomSheet(
+            onClosing: () {},
+            builder: (context) {
+              return Container(
+                padding: EdgeInsets.all(10.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: FlatButton(
+                        child: Text("Ligar",
+                            style:
+                                TextStyle(color: Colors.red, fontSize: 20.0)),
+                        onPressed: () {
+                          launch("tel:${contacts[index].telefone}");
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: FlatButton(
+                        child: Text("Editar",
+                            style:
+                                TextStyle(color: Colors.red, fontSize: 20.0)),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showContactPage(contact: contacts[index]);
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: FlatButton(
+                        child: Text("Excluir",
+                            style:
+                                TextStyle(color: Colors.red, fontSize: 20.0)),
+                        onPressed: () {
+                          helper.deleteContact(contacts[index].id);
+                          setState(() {
+                            contacts.removeAt(index);
+                            Navigator.pop(context);
+                          });
+                        },
+                      ),
+                    )
+                  ],
+                ),
+              );
+            },
+          );
+        });
+  }
+
+  void _showContactPage({Contact contact}) async {
+    final recContant = await Navigator.push(context,
+        MaterialPageRoute(builder: (context) => ContactPage(contact: contact)));
+    if (recContant != null) {
+      if (contact != null) {
+        await helper.updateContact(recContant);
+      } else {
+        await helper.saveContact(recContant);
+      }
+      _getAllContacts();
+    }
+  }
+
+  void _getAllContacts() {
+    helper.getAllContacts().then((list) {
+      setState(() {
+        contacts = list;
+      });
+    });
   }
 }
