@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MaterialApp(home: Home()));
+  runApp(MaterialApp(home: Home(),debugShowCheckedModeBanner: false));
 }
 
 class Home extends StatefulWidget {
@@ -54,14 +54,74 @@ class _HomeState extends State<Home> {
               onRefresh: _refresh,
               child: ListView.builder(
                 itemBuilder: _rowRelatorio,
-                itemCount: 5,
+                itemCount: 2,
               ),
             ),
           )
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () {
+          showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  content: Container(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text("Relatório",
+                            style: TextStyle(
+                                color: Colors.lightBlue[900],
+                                fontSize: 22.0,
+                                fontWeight: FontWeight.bold)),
+                        Divider(color: Colors.deepPurple),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Padding(
+                              padding: const EdgeInsets.only(right: 35.0),
+                              child: Text("Relatório",
+                                  style: TextStyle(
+                                      color: Colors.lightBlue[900],
+                                      fontSize: 16.0)),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 35.0),
+                              child: Text("Empresa",
+                                  style: TextStyle(
+                                      color: Colors.lightBlue[900],
+                                      fontSize: 16.0)),
+                            ),
+                          ],
+                        ),
+                        Divider(color: Colors.deepPurple),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Padding(
+                              padding: const EdgeInsets.only(right: 35.0),
+                              child: Text("15",
+                                  style: TextStyle(
+                                      color: Colors.lightBlue[900],
+                                      fontSize: 16.0)),
+                            ),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 35.0),
+                                  child: Container(
+                                    color: Colors.grey[400],
+                                    child: TextField(keyboardType: TextInputType.number, textAlign: TextAlign.center)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              });
+        },
         child: Icon(Icons.add),
         backgroundColor: Colors.blueAccent,
       ),
@@ -85,7 +145,7 @@ Widget _rowRelatorio(BuildContext context, int index) {
           children: <Widget>[
             Column(
               children: <Widget>[
-                Text("Relatório: 1", style: TextStyle(fontSize: 20.0)),
+                Text("Relatório: ${index + 1}", style: TextStyle(fontSize: 20.0)),
                 Text("Data:********", style: TextStyle(fontSize: 20.0)),
                 Text("Valor R\$ 0,00", style: TextStyle(fontSize: 20.0)),
               ],
