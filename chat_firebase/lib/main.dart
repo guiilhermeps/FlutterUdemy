@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 
 void main() {
   //Firestore.instance.collection("teste").document("teste").setData({"teste" : "teste"});
@@ -60,7 +64,8 @@ void _sendMessage({String text, String imgUrl}) {
     "text": text,
     "imgUrl": imgUrl,
     "nameOrigem": googleSignIn.currentUser.displayName,
-    "namePhotoUrl": googleSignIn.currentUser.photoUrl
+    "namePhotoUrl": googleSignIn.currentUser.photoUrl,
+    "senderDate": new DateTime.now().toIso8601String()
   });
 }
 
@@ -89,7 +94,7 @@ class _ChatScreenState extends State<ChatScreen> {
             Expanded(
                 child: StreamBuilder(
                     stream:
-                    Firestore.instance.collection("messages").snapshots(),
+                    Firestore.instance.collection("messages").orderBy("senderDate").snapshots(),
                     builder: (context, snapshot) {
                       switch (snapshot.connectionState) {
                         case ConnectionState.none:
@@ -158,7 +163,16 @@ class _TextComposerState extends State<TextComposer> {
           children: <Widget>[
             Container(
               child:
-              IconButton(icon: Icon(Icons.photo_camera), onPressed: () {}),
+              IconButton(icon: Icon(Icons.photo_camera), onPressed: () async{
+                await _ensureLoggedIn();
+                File imgFile = await ImagePicker.pickImage(source: ImageSource.camera);
+                if (imgFile == null) return;
+                StorageUploadTask task = FirebaseStorage.instance.ref().child(googleSignIn.currentUser.id.toString() +
+                    DateTime.now().millisecondsSinceEpoch.toString()).putFile(imgFile);
+                StorageTaskSnapshot taskSnapshot = await task.onComplete;
+                String url = await taskSnapshot.ref.getDownloadURL();
+                _sendMessage(imgUrl: url);
+              }),
             ),
             Expanded(
                 child: TextField(
